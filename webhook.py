@@ -1,4 +1,5 @@
 import json
+from multiprocessing import context
 import os
 import requests
 
@@ -32,11 +33,19 @@ def processRequest(req):
             break
     
     speech = "The forecast for "+city+ "for "+date+" is "+condition+f"({main})"
-    return {
-    "speech": speech,
-    "displayText": speech,
-    "source": "apiai-weather-webhook"
-    }
+    context =                {
+                "fulfillmentMessages": [
+                    {
+                    "text": {
+                        "text": [
+                        f"{speech}"
+                        ]
+                    }
+                    }
+                ]
+                }
+    return context
+    
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
