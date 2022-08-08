@@ -9,6 +9,35 @@ from flask import make_response
 # Flask app should start in global layout
 app = Flask(__name__)
 
+def processRequest(req):
+ 
+    # if req.["result"].["action"] != "fetchWeatherForecast":
+    #     return {}
+    result = req["queryResult"]
+    parameters = result["parameters"]
+    city = parameters["geo-city"]
+    date = parameters["date"]
+    if city is None:
+        return None
+    r=requests.get('http://api.openweathermap.org/data/2.5/forecast?q='+city+'&appid=7fa4fc93e21f5c2987bd51291b001272')
+    json_object = r.json()
+    weather=json_object['list']
+    condition = "something broke"
+    main = "Error"
+    for i in range(0,30):
+        print(date.split("T")[0], weather[i]['dt_txt'])
+        if date.split("T")[0] in weather[i]['dt_txt']:
+            condition= weather[i]['weather'][0]['description']
+            main = weather[i]['weather'][0]['main']
+            break
+    
+    speech = "The forecast for "+city+ "for "+date+" is "+condition+f"({main})"
+    return {
+    "speech": speech,
+    "displayText": speech,
+    "source": "apiai-weather-webhook"
+    }
+
 @app.route('/webhook', methods=['POST'])
 def webhook():
     req = request.get_json(silent=True, force=True)
@@ -17,34 +46,12 @@ def webhook():
     res = processRequest(req)
     
     res = json.dumps(res, indent=4)
-    # print(res)
+    # print(res]
     r = make_response(res)
     r.headers['Content-Type'] = 'application/json'
     return r
 
-def makeResponse(req):
-    if req.get("result").get("action") != "fetchWeatherForecast":
-        return {}
-    result = req.get("result")
-    parameters = result.get("parameters")
-    city = parameters.get("geo-city")
-    date = parameters.get("date")
-    if city is None:
-        return None
-    r=requests.get('http://api.openweathermap.org/data/2.5/forecast?q='+city+'&appid=7fa4fc93e21f5c2987bd51291b001272')
-    json_object = r.json()
-    weather=json_object['list']
-    for i in range(0,30):
-        if date in weather[i]['dt_txt']:
-            condition= weather[i]['weather'][0]['description']
-            main = weather[i]['weather'][0]['main']
-            break
-    speech = "The forecast for"+city+ "for "+date+" is "+condition+f"({main})"
-    return {
-    "speech": speech,
-    "displayText": speech,
-    "source": "apiai-weather-webhook"
-    }
+
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
